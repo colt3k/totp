@@ -1,13 +1,26 @@
 package totp
 
 import (
+	"fmt"
+	"github.com/colt3k/utils/crypt"
+)
+
+/*
+This is an implementation that provides a call to generate a seed and OTP from a seed
+
+Reference
+TOTP: Time-Based One-Time Password Algorithm (built upon HOTP)
+https://datatracker.ietf.org/doc/html/rfc6238
+
+HOTP: An HMAC-Based One-Time Password Algorithm (Seed defined here)
+https://datatracker.ietf.org/doc/html/rfc4226
+*/
+import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha1" //nolint:gosec
 	"encoding/base32"
 	"encoding/binary"
-	log "github.com/colt3k/nglog/ng"
-	"github.com/colt3k/utils/crypt"
 	"github.com/colt3k/utils/crypt/encrypt/argon2id"
 	"math/big"
 	"regexp"
@@ -26,12 +39,12 @@ func Seed(size int) ([]byte, error) {
 	salt = crypt.GenSalt(salt, 16)
 	tkn, err := generateToken(32)
 	if err != nil {
-		log.Logf(log.ERROR, "issue creating token %v", err)
-		return nil, err
+		return nil, fmt.Errorf("issue creating token %v", err)
 	}
 	dk, _, _ := argon2id.Key([]byte(tkn), salt, 32)
-	dkHash := base32.StdEncoding.EncodeToString(dk)
-	//log.Logf(log.INFO, "%v", dkHash[:size])
+	base32Encoder := base32.StdEncoding.WithPadding(base32.NoPadding)
+	dkHash := base32Encoder.EncodeToString(dk)
+
 	return []byte(dkHash[:size]), nil
 }
 
@@ -40,9 +53,7 @@ func generateToken(size int) (string, error) {
 	if size > 16 && size <= 32 {
 		length = size
 	}
-	chars := ""
-	chars = chars + "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	chars = chars + "0123456789"
+	chars := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 	str := ""
 	counter := 0
@@ -58,7 +69,6 @@ func generateToken(size int) (string, error) {
 			buf[i] = chars[num.Int64()]
 		}
 		str = string(buf)
-		//log.Logf(log.INFO, "repeated %v - last gend '%v'", counter, str)
 		valid = validate(false, true, true, "", str)
 		if valid {
 			break
@@ -115,7 +125,9 @@ func GenerateOTP(seed []byte) (uint32, uint32, uint32, int) {
 	return totpCodePrev, totpCode, totpCodeNext, exp
 }
 
-// https://rednafi.com/go/totp_client/
+/*
+Built upon the explanation and example here https://rednafi.com/go/totp_client/
+*/
 func generateTOTP(secretKey []byte, timestamp int64) uint32 {
 	// The base32 encoded secret key string is decoded to a byte slice
 	//    Trim whitespace and convert the base32 encoded secret key string to uppercase
