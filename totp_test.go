@@ -16,7 +16,7 @@ func TestSeed(t *testing.T) {
 			t.Fail()
 		}
 		t.Logf("Seed %v", string(s))
-		_, err = GenerateQRCode("jdoe@xxx.com", "Sprockets", s, 200, 200)
+		_, err = GenerateQRCodeAsBase64String("jdoe@xxx.com", "Sprockets", s, 200, 200)
 		if err != nil {
 			t.Logf("failed to generate barcode %v", err)
 			t.Fail()

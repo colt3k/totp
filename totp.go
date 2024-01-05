@@ -16,6 +16,7 @@ import (
 	"crypto/rand"
 	"crypto/sha1" //nolint:gosec
 	"encoding/base32"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"github.com/boombuler/barcode"
@@ -23,7 +24,10 @@ import (
 	"github.com/colt3k/utils/crypt"
 	"github.com/colt3k/utils/crypt/encrypt/argon2id"
 	"image"
+	"image/png"
+	"io"
 	"math/big"
+	"net/http"
 	"regexp"
 	"strings"
 	"time"
@@ -45,6 +49,36 @@ func Seed(size int) ([]byte, error) {
 	dkHash := base32Encoder.EncodeToString(dk)
 
 	return []byte(dkHash[:size]), nil
+}
+
+// GenerateQRCodeAsBase64String creates QR Barcode then converts to base64 string for display
+func GenerateQRCodeAsBase64String(email, issuer string, seed []byte, width, height int) (string, error) {
+	i, err := GenerateQRCode(email, issuer, seed, width, height)
+	if err != nil {
+		return "", err
+	}
+	var base64Encoding string
+	var bytImg bytes.Buffer
+	bytW := io.Writer(&bytImg)
+	err = png.Encode(bytW, i)
+	if err != nil {
+		fmt.Printf("issue writing image to buffer: %v", err)
+	} else {
+		// Determine the content type of the image file
+		mimeType := http.DetectContentType(bytImg.Bytes())
+		// Prepend the appropriate URI scheme header depending
+		// on the MIME type
+		switch mimeType {
+		case "image/jpeg":
+			base64Encoding += "data:image/jpeg;base64,"
+		case "image/png":
+			base64Encoding += "data:image/png;base64,"
+		}
+
+		// Append the base64 encoded output
+		base64Encoding += base64.StdEncoding.EncodeToString(bytImg.Bytes())
+	}
+	return base64Encoding, nil
 }
 
 // GenerateQRCode generates a qr code using the approved otpauth format
