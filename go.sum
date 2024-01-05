@@ -1,3 +1,5 @@
+github.com/boombuler/barcode v1.0.1 h1:NDBbPmhS+EqABEs5Kg3n/5ZNjy73Pz7SIV+KCeqyXcs=
+github.com/boombuler/barcode v1.0.1/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
 github.com/colt3k/nglog v0.0.28 h1:0HWJMuDyENYJ+ZaUL/ApJQoqwsT9A40riy4TroIIzO4=
 github.com/colt3k/nglog v0.0.28/go.mod h1:2OaDEO8ISp4fbXlwFeshQYqoVkFDBW0qNHEixzY2Mdo=
 github.com/colt3k/utils/archive v0.0.9 h1:pMbRSbyVn6djEh6hFUBjlYbGwgTnzctt80xaSdW7nHk=

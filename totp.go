@@ -1,10 +1,5 @@
 package totp
 
-import (
-	"fmt"
-	"github.com/colt3k/utils/crypt"
-)
-
 /*
 This is an implementation that provides a call to generate a seed and OTP from a seed
 
@@ -16,21 +11,25 @@ HOTP: An HMAC-Based One-Time Password Algorithm (Seed defined here)
 https://datatracker.ietf.org/doc/html/rfc4226
 */
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha1" //nolint:gosec
 	"encoding/base32"
 	"encoding/binary"
+	"fmt"
+	"github.com/boombuler/barcode"
+	"github.com/boombuler/barcode/qr"
+	"github.com/colt3k/utils/crypt"
 	"github.com/colt3k/utils/crypt/encrypt/argon2id"
+	"image"
 	"math/big"
 	"regexp"
 	"strings"
 	"time"
 )
 
-/*
-Seed : creates a derived seed of 16, 26 or 32 chars; default 32
-*/
+// Seed : creates a derived seed of 16, 26 or 32 chars; default 32
 func Seed(size int) ([]byte, error) {
 	if size != 16 && size != 26 && size != 32 {
 		size = 32
@@ -46,6 +45,29 @@ func Seed(size int) ([]byte, error) {
 	dkHash := base32Encoder.EncodeToString(dk)
 
 	return []byte(dkHash[:size]), nil
+}
+
+// GenerateQRCode generates a qr code using the approved otpauth format
+func GenerateQRCode(email, issuer string, seed []byte, width, height int) (image.Image, error) {
+	// Generate with Value: otpauth://totp/Sprockets:jdoe@xxx.com?secret=JBSWY3DPEHPK3PXP&issuer=Sprockets
+	var byt bytes.Buffer
+	byt.WriteString("otpauth://totp/")
+	byt.WriteString(issuer)
+	byt.WriteString(":")
+	byt.WriteString(email)
+	byt.WriteString("?secret=")
+	byt.Write(seed)
+	byt.WriteString("&issuer=")
+	byt.WriteString(issuer)
+	b, err := qr.Encode(byt.String(), qr.M, qr.Auto)
+	if err != nil {
+		return nil, err
+	}
+	b, err = barcode.Scale(b, width, height)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
 func generateToken(size int) (string, error) {
@@ -125,9 +147,7 @@ func GenerateOTP(seed []byte) (uint32, uint32, uint32, int) {
 	return totpCodePrev, totpCode, totpCodeNext, exp
 }
 
-/*
-Built upon the explanation and example here https://rednafi.com/go/totp_client/
-*/
+// Built upon the explanation and example here https://rednafi.com/go/totp_client/
 func generateTOTP(secretKey []byte, timestamp int64) uint32 {
 	// The base32 encoded secret key string is decoded to a byte slice
 	//    Trim whitespace and convert the base32 encoded secret key string to uppercase
@@ -151,7 +171,7 @@ func generateTOTP(secretKey []byte, timestamp int64) uint32 {
 	h := hash.Sum(nil)    // Calculate 20-byte SHA-1 digest
 
 	// AND the SHA-1 with 0x0F (15) to get a single-digit offset
-	//   Get the last byte of the SHA-1 digest and AND it with 0x0F (15) to mask off all but the last 4 bits to get an offset index from 0-15
+	//   Get the last byte of the SHA-1 digest and 'AND' it with 0x0F (15) to mask off all but the last 4 bits to get an offset index from 0-15
 	offset := h[len(h)-1] & 0x0F
 
 	// Truncate the SHA-1 by the offset and convert it into a 32-bit
