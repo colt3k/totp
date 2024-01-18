@@ -1,4 +1,4 @@
-![Coverage](https://github.com/colt3k/totp/blob/badge/badge.svg)
+![Coverage](https://github.com/colt3k/totp/blob/badge/badge.svg?branch=main)
 # totp
 
 ## Purpose:
