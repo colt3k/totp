@@ -1,6 +1,11 @@
 package totp
 
 import (
+	"bytes"
+	iout "github.com/colt3k/utils/io"
+	"github.com/colt3k/utils/osut"
+	"image/png"
+	"io"
 	"testing"
 )
 
@@ -30,4 +35,32 @@ func TestSeed(t *testing.T) {
 func TestOTP(t *testing.T) {
 	otpPrev, otp, otpNext, exp := GenerateOTP([]byte("I2L337PGAURUVO6DJDNEXF2ZKTXP5VOY"))
 	t.Logf("   OTP (prev,cur,next) %v\t%v\t%v ; expiration in %v secs", otpPrev, otp, otpNext, exp)
+}
+
+func TestGenerateQRCode(t *testing.T) {
+	i, err := GenerateQRCode("jdoe@xxx.com", "Sprockets", []byte("I2L337PGAURUVO6DJDNEXF2ZKTXP5VOY"), 200, 200)
+	if err != nil {
+		t.Logf("failed to generate qr %v", err)
+		t.Fail()
+	}
+
+	var bytImg bytes.Buffer
+	bytW := io.Writer(&bytImg)
+	err = png.Encode(bytW, i)
+	if err != nil {
+		t.Logf("issue writing image to buffer: %v", err)
+		t.Fail()
+	}
+
+	_, err = iout.WriteOut(bytImg.Bytes(), "test.png")
+	if err != nil {
+		t.Logf("issue writing out image: %v", err)
+		t.Fail()
+	}
+	s, err := osut.CallCmd("qrencode -t ansiutf8 < ./test.png")
+	if err != nil {
+		t.Logf("issue calling qrencode: %v", err)
+		t.Fail()
+	}
+	t.Logf("   OTP (QR Code completed) %s", s)
 }
