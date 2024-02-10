@@ -53,7 +53,12 @@ func Seed(size int) ([]byte, error) {
 
 // GenerateQRCodeAsBase64String creates QR Barcode then converts to base64 string for display
 func GenerateQRCodeAsBase64String(email, issuer string, seed []byte, width, height int) (string, error) {
-	i, err := GenerateQRCode(email, issuer, seed, width, height)
+	return GenerateQRCodeAsBase64StringWithTimePeriod(email, issuer, seed, 30, width, height)
+}
+
+// GenerateQRCodeAsBase64StringWithTimePeriod creates QR Barcode then converts to base64 string for display
+func GenerateQRCodeAsBase64StringWithTimePeriod(email, issuer string, seed []byte, timePeriod, width, height int) (string, error) {
+	i, err := GenerateQRCodeWithTimePeriod(email, issuer, seed, timePeriod, width, height)
 	if err != nil {
 		return "", err
 	}
@@ -81,9 +86,19 @@ func GenerateQRCodeAsBase64String(email, issuer string, seed []byte, width, heig
 	return base64Encoding, nil
 }
 
-// GenerateQRCode generates a qr code using the approved otpauth format
+/*
+GenerateQRCode generates a qr code using the approved otpauth format, pass custom timePeriod or 0 for default of 30
+*/
 func GenerateQRCode(email, issuer string, seed []byte, width, height int) (image.Image, error) {
+	return GenerateQRCodeWithTimePeriod(email, issuer, seed, 30, width, height)
+}
+
+func GenerateQRCodeWithTimePeriod(email, issuer string, seed []byte, timePeriod, width, height int) (image.Image, error) {
+	if timePeriod == 0 {
+		timePeriod = 30
+	}
 	// Generate with Value: otpauth://totp/Sprockets:jdoe@xxx.com?secret=JBSWY3DPEHPK3PXP&issuer=Sprockets
+	// expanded version for specific user
 	var byt bytes.Buffer
 	byt.WriteString("otpauth://totp/")
 	byt.WriteString(issuer)
@@ -162,27 +177,47 @@ func validate(lower, upper, digit bool, specialChars, str string) bool {
 	return valid
 }
 
-// GenerateOTP returns OTP and time until expiration
-func GenerateOTP(seed []byte) (uint32, uint32, uint32, int) {
+/*
+GenerateOTP returns OTP and time until expiration, timePeriod override, default 30sec
+*/
+/*
+GenerateOTP returns OTP and time until expiration, timePeriod override, default 30sec
+*/
+func GenerateOTP(seed []byte) (string, string, string, int) {
+	return GenerateOTPWithTimePeriod(seed, 30)
+}
+
+func GenerateOTPWithTimePeriod(seed []byte, timePeriod int) (string, string, string, int) {
+	if timePeriod == 0 {
+		timePeriod = 30
+	}
+
 	t := time.Now()
 	now := t.Unix()
 	// diff of seconds between now and 30 or now and next minute
 	sec := t.Second()
 	var exp int
-	if sec < 30 {
-		exp = 30 - sec
-	} else if sec > 30 {
-		exp = 60 - sec
+
+	if timePeriod == 30 {
+		if sec <= timePeriod {
+			exp = timePeriod - sec
+		} else if sec > timePeriod {
+			exp = 60 - sec
+		}
+	} else if timePeriod == 60 {
+		if sec <= timePeriod {
+			exp = timePeriod - sec
+		}
 	}
 
-	totpCodePrev := generateTOTP(seed, now-30)
-	totpCode := generateTOTP(seed, now)
-	totpCodeNext := generateTOTP(seed, now+30)
-	return totpCodePrev, totpCode, totpCodeNext, exp
+	totpCodePrev := generateTOTP(seed, now-int64(timePeriod), timePeriod)
+	totpCode := generateTOTP(seed, now, timePeriod)
+	totpCodeNext := generateTOTP(seed, now+int64(timePeriod), timePeriod)
+	return fmt.Sprintf("%06d", totpCodePrev), fmt.Sprintf("%06d", totpCode), fmt.Sprintf("%06d", totpCodeNext), exp
 }
 
 // Built upon the explanation and example here https://rednafi.com/go/totp_client/
-func generateTOTP(secretKey []byte, timestamp int64) uint32 {
+func generateTOTP(secretKey []byte, timestamp int64, timePeriod int) uint32 {
 	// The base32 encoded secret key string is decoded to a byte slice
 	//    Trim whitespace and convert the base32 encoded secret key string to uppercase
 	base32Decoder := base32.StdEncoding.WithPadding(base32.NoPadding)
@@ -194,7 +229,7 @@ func generateTOTP(secretKey []byte, timestamp int64) uint32 {
 	//    Decode the preprocessed secret key from base32 to a byte slice
 	//    Get the current timestamp, divide by 30, and convert it to an 8-byte big-endian unsigned integer
 	timeBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(timeBytes, uint64(timestamp)/30)
+	binary.BigEndian.PutUint64(timeBytes, uint64(timestamp)/uint64(timePeriod))
 
 	// The timestamp bytes are concatenated with the decoded secret key
 	// bytes. Then a 20-byte SHA-1 hash is calculated from the byte slice
