@@ -4,15 +4,15 @@ go 1.22
 
 require (
 	github.com/boombuler/barcode v1.0.1
-	github.com/colt3k/utils/crypt v0.0.10
-	github.com/colt3k/utils/io v0.0.19
-	github.com/colt3k/utils/osut v0.0.5
+	github.com/colt3k/utils/crypt v0.0.11
+	github.com/colt3k/utils/io v0.0.20
+	github.com/colt3k/utils/osut v0.0.6
 )
 
 require (
-	github.com/colt3k/nglog v0.0.29 // indirect
-	github.com/colt3k/utils/archive v0.0.9 // indirect
-	github.com/colt3k/utils/mathut v0.0.2 // indirect
+	github.com/colt3k/nglog v0.0.30 // indirect
+	github.com/colt3k/utils/archive v0.0.10 // indirect
+	github.com/colt3k/utils/mathut v0.0.3 // indirect
 	github.com/colt3k/utils/stats v0.0.1 // indirect
 	github.com/go-mail/mail v2.3.1+incompatible // indirect
 	github.com/gonutz/w32 v1.0.0 // indirect
