@@ -6,8 +6,8 @@ toolchain go1.24.10
 
 require (
 	github.com/boombuler/barcode v1.1.0
-	github.com/colt3k/utils/crypt v0.0.15
-	github.com/colt3k/utils/io v0.0.22
+	github.com/colt3k/utils/crypt v0.0.16
+	github.com/colt3k/utils/io v0.0.24
 	github.com/colt3k/utils/osut v0.0.7
 )
 
